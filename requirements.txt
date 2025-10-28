@@ -1,0 +1,7 @@
+polars
+scikit-learn
+numpy
+sqlalchemy
+netCDF4
+scipy
+matplotlib
