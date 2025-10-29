@@ -56,11 +56,16 @@ See preprocessed dataset in `Outputs/anomaly.csv` and raw dataset in `Outputs/vi
         * Notably, these values can be accurately simulated back and forward at least 1 million years.
 * **be_ppm**: Beryllium-10 concentration in parts per million (ppm) - Be-10 is produced by cosmic rays in the atmosphere, and so are a proxy for cosmic ray flux.
     * Extracted from sea-floor sediment samples from the East China Sea up to 400k years ago and the Sea of Japan up to 12M years ago, compiled by Anderson et al. (2018) and Anderson et al. (2019).
+    * Note: These are geochemical datasets that include beryllium measurements, but not exclusively the Be-10 isotope, and should be replaced with more relevant datasets before analysis.
 * **VADM**: Virtual Axial Dipole Moment - A measure of Earth's magnetic field strength, which modulates cosmic ray flux.
     * Extracted from sediment cores by Valet et al. (2005) for the past 2M years.
 * **solar_modulation**: Calculated field derived from Be-10 concentration and VADM by the calculations of Marsh (2014).
    * Marsh theorizes that solar modulation is a core driver of glacial cycles, in addition to orbital parameters.
-   * Solar modulation -> cosmic ray flux <- VADM, and cosmic ray flux -> temperature, so solar modulation is the cleanest proxy for cosmic ray flux and its effect on temperature.
+   * As VADM and Be-10 can be used to calculate solar modulation, but VADM 
+   * Solar modulation -> cosmic ray flux <- VADM
+   * Be-10 <- cosmic ray flux -> cloud cover -> temperature
+       * Therefore, variations in solar modulation are the clearest signal for changes in cosmic ray flux, which affect cloud cover and thereby temperature.
+       * While VADM and solar modulation play the same role in the DAG, solar modulation is preferred for climate inference as it more directly relates to cosmic ray flux. Since VADM, solar modulation, and Be-10 all have a known mathematical relationship, we can calculate solar modulation from Be-10 and VADM records to serve as a clean proxy for cosmic ray flux.
 
 # Data Sources
 Formal citations to be added later. See the `Manual/README.md` and the source links in ETL.py's `data_sources` dictionary for more information.
