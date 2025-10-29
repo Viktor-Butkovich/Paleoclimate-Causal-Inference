@@ -40,6 +40,16 @@ data_sources = {
         "path": "Data/Berkeley_Earth_Land_and_Ocean_LatLong1.nc",
         "source": "http://berkeleyearth.org/data/",
     },
+    "ice_core_800k": {
+        "url": "https://www.ncei.noaa.gov/pub/data/paleo/icecore/antarctica/antarctica2015co2composite-noaa.txt",
+        "path": "Data/ice_core_800k_co2.txt",
+        "source": "https://www.ncei.noaa.gov/access/paleo-search/study/17975",
+    },
+    "co2_trends": {
+        "url": "https://gml.noaa.gov/webdata/ccgg/trends/co2/co2_annmean_mlo.csv",
+        "path": "Data/co2_annmean_mlo.csv",
+        "source": "https://gml.noaa.gov/ccgg/trends/data.html",
+    },
 }
 for data_source in data_sources.values():
     download_file(data_source["url"], data_source["path"])
@@ -48,6 +58,12 @@ for data_source in data_sources.values():
 # Load data files locally
 temp12k = pkl.load(open(data_sources["temp12k"]["path"], "rb"))
 modern_temperature_grid = nc.Dataset(data_sources["berkeley_earth"]["path"], mode="r")
+ice_core_800k = pl.read_csv(
+    data_sources["ice_core_800k"]["path"],
+    separator="\t",
+    comment_prefix="#",
+)
+co2_annmean_mlo = pl.read_csv(data_sources["co2_trends"]["path"], comment_prefix="#")
 
 # %%
 # Transform data into a tabular format
@@ -320,5 +336,47 @@ temperature_df = temperature_df.with_columns(
     .alias("year_bin")
 ).with_columns(pl.col("year_bin").alias("time_id"))
 valid_year_bins = list(temperature_df["year_bin"].unique())
+
+# %%
+# Incorporate orbital simulation data (Milankovitch cycles)
+orbital_df = pl.read_csv("Manual/milankovitch_simulation.csv")
+orbital_df = orbital_df.rename({"global.insolation": "global_insolation"})
+orbital_df = util.year_bins_transform(orbital_df, valid_year_bins)
+valid_year_bins += list(orbital_df["year_bin"].unique())
+valid_year_bins = sorted(
+    set(valid_year_bins)
+)  # Add future simulated values to valid year bins
+
+# %%
+# Incorporate 800k year ice core CO2 data
+co2_df = (
+    ice_core_800k.with_columns((1950 - pl.col("age_gas_calBP")).alias("year"))
+).drop("age_gas_calBP", "co2_1s_ppm")
+co2_df = util.year_bins_transform(co2_df, valid_year_bins)
+
+# %%
+# Incorporate CO2 data since 1959
+co2_df = pl.concat(
+    [
+        co2_df,
+        co2_annmean_mlo.with_columns(
+            pl.col("year").alias("year_bin"),
+            pl.col("mean").alias("co2_ppm"),
+        ).select(["year_bin", "co2_ppm"]),
+    ]
+)
+# Include radiative forcing calculation
+initial_co2_ppm = 228  # Pre-industrial CO2 concentration
+co2_df = co2_df.with_columns(
+    pl.col("co2_ppm")
+    .map_elements(lambda x: 5.35 * np.log(x / initial_co2_ppm), return_dtype=pl.Float64)
+    .alias("co2_radiative_forcing")
+)
+
+# If there are any duplicate year bins, prioritize the modern measurements over the ice core measurements
+co2_df = co2_df.group_by("year_bin").agg(
+    pl.col("co2_ppm").last().alias("co2_ppm"),
+    pl.col("co2_radiative_forcing").last().alias("co2_radiative_forcing"),
+)
 
 # %%

@@ -7,3 +7,5 @@ scipy
 matplotlib
 requests
 ipykernel
+pandas
+pyarrow
