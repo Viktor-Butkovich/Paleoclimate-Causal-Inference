@@ -47,18 +47,18 @@ See preprocessed dataset in `Outputs/anomaly.csv` and raw dataset in `Outputs/vi
 * **co2_ppm**: Atmospheric CO2 concentration in parts per million (ppm).
     * Extracted from Antarctic ice core samples for the past 800k years, as well as recent Mauna Loa Observatory measurements since 1959.
 * **co2_radiative_forcing**: Calculated field derived from co2_ppm by the calculations of Myhre et al. (1998) - roughly linear relationship with temperature when climate sensitivity is held constant.
-* Orbital parameters: Simulated by `https://biocycle.atmos.colostate.edu/shiny/Milankovitch/`, based on the calculations of J. Laskar et al (2004). These are broadly accepted as the main drivers of Earth's glacial cycles over the past several million years.
+* Orbital parameters: Simulated by `https://biocycle.atmos.colostate.edu/shiny/Milankovitch/`, based on the calculations of J. Laskar et al. (2004). These are broadly accepted as the main drivers of Earth's glacial cycles over the past several million years.
     * **eccentricity**: Eccentricity of the ellipse along which Earth orbits the Sun.
     * **obliquity**: Earth's axial tilt.
     * **perihelion**: Related to the precession of the equinoxes, which is related to distribution of sunlight by season.
     * **insolation**: Insolation at 65°N on the day of the summer solstice, a proxy for the summer warmth near glaciated regions of the Northern Hemisphere.
     * **global_insolation**: Average global insolation.
         * Notably, these values can be accurately simulated back and forward at least 1 million years.
-   * **be_ppm**: Beryllium-10 concentration in parts per million (ppm) - Be-10 is produced by cosmic rays in the atmosphere, and so are a proxy for cosmic ray flux.
-   * **VADM**: Virtual Axial Dipole Moment - A measure of Earth's magnetic field strength, which modulates cosmic ray flux.
-   * **solar_modulation**: Measurement of solar activity derived from Be-10 concentration and VADM by the calculations of Marsh (2014).
-       * Marsh theorizes that solar modulation is a core driver of glacial cycles.
-       * Solar modulation -> cosmic ray flux <- VADM, and cosmic ray flux -> temperature, so solar modulation is the cleanest proxy for cosmic ray flux and its effect on temperature.
+* **be_ppm**: Beryllium-10 concentration in parts per million (ppm) - Be-10 is produced by cosmic rays in the atmosphere, and so are a proxy for cosmic ray flux.
+* **VADM**: Virtual Axial Dipole Moment - A measure of Earth's magnetic field strength, which modulates cosmic ray flux.
+* **solar_modulation**: Measurement of solar activity derived from Be-10 concentration and VADM by the calculations of Marsh (2014).
+      * Marsh theorizes that solar modulation is a core driver of glacial cycles, in addition to orbital parameters.
+      * Solar modulation -> cosmic ray flux <- VADM, and cosmic ray flux -> temperature, so solar modulation is the cleanest proxy for cosmic ray flux and its effect on temperature.
 
 # Data Sources
 Formal citations to be added later. See the `Manual/README.md` and the source links in ETL.py's `data_sources` dictionary for more information.
