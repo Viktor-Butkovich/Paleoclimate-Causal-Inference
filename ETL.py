@@ -39,7 +39,7 @@ data_sources = {
     "berkeley_earth": {
         "url": "https://berkeley-earth-temperature.s3.us-west-1.amazonaws.com/Global/Gridded/Land_and_Ocean_LatLong1.nc",
         "path": "Data/Berkeley_Earth_Land_and_Ocean_LatLong1.nc",
-        "source": "http://berkeleyearth.org/data/",
+        "source": "https://essd.copernicus.org/articles/12/3469/2020/essd-12-3469-2020.html",
     },
     "ice_core_800k": {
         "url": "https://www.ncei.noaa.gov/pub/data/paleo/icecore/antarctica/antarctica2015co2composite-noaa.txt",
@@ -417,7 +417,7 @@ co2_df = pl.concat(
     ]
 )
 # Include radiative forcing calculation
-initial_co2_ppm = 228  # Pre-industrial CO2 concentration
+initial_co2_ppm = 278  # Pre-industrial CO2 concentration
 co2_df = co2_df.with_columns(
     pl.col("co2_ppm")
     .map_elements(lambda x: 5.35 * np.log(x / initial_co2_ppm), return_dtype=pl.Float64)
