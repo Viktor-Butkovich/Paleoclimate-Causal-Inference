@@ -5,3 +5,5 @@ sqlalchemy
 netCDF4
 scipy
 matplotlib
+requests
+ipykernel
