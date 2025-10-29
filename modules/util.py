@@ -2,6 +2,7 @@ from typing import List
 import polars as pl
 import netCDF4 as nc
 import numpy as np
+from sklearn.preprocessing import StandardScaler
 
 
 def get_year_bin(year: int) -> int:
@@ -193,3 +194,28 @@ def calculate_solar_modulation(Q, M):
         return None
     phi = (1 / (a + b * ((c + M) / (d + e * M)) / Q)) - a
     return phi
+
+
+def round_columns(df, num_places, exclude=None):
+    if not exclude:
+        exclude = []
+    return df.with_columns(
+        [
+            pl.col(col).round(num_places).alias(col)
+            for col in df.columns
+            if col not in exclude
+        ]
+    )
+
+
+def normalize(df, exclude=None):
+    # Normalize most columns to have a mean of 0 and standard deviation of 1
+    if not exclude:
+        exclude = []
+    scaler = StandardScaler()
+    columns_to_normalize = [col for col in df.columns if col not in exclude]
+    normalized_data = scaler.fit_transform(df.select(columns_to_normalize).to_numpy())
+    normalized_df = pl.DataFrame(normalized_data, schema=columns_to_normalize)
+    return df.with_columns(
+        [pl.Series(name, normalized_df[name]) for name in columns_to_normalize]
+    )

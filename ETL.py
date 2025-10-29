@@ -481,4 +481,77 @@ cosmic_df = cosmic_df.with_columns(
     )
     .alias("solar_modulation")
 )
+
+# %%
+# Aggregate temperature across locations by year bin
+view = (
+    temperature_df.group_by("year_bin")
+    .agg(pl.col("anomaly").mean().alias("anomaly"))
+    .sort("year_bin")
+)
+
+# Ensure all year bins are present (including future bins)
+view = pl.DataFrame({"year_bin": valid_year_bins}).join(view, on="year_bin", how="left")
+
+# %%
+# Join supplementary data
+view = (
+    view.join(co2_df, on="year_bin", how="left")
+    .with_columns(pl.col("co2_ppm").cast(pl.Float64))
+    .join(orbital_df, on="year_bin", how="left")
+    .join(cosmic_df, on="year_bin", how="left")
+)
+
+# %%
+# Store raw data for maximum-resolution visualizations
+visualization_view = util.round_columns(
+    util.normalize(view, exclude=["year_bin", "anomaly", "co2_ppm"]),
+    num_places=3,
+    exclude=["year_bin"],
+).sort("year_bin")
+# %%
+# Clean the data
+
+# Aggregate data to have a constant frequency of 2000 years
+view = (
+    view.with_columns((pl.col("year_bin") // 2000 * 2000).alias("year_bin"))
+    .group_by("year_bin")
+    .agg(pl.all().mean())
+).sort("year_bin")
+
+
+# Apply a rolling mean to the solar_modulation column - helps with sparse data
+view = view.with_columns(
+    pl.col("solar_modulation")
+    .rolling_mean(window_size=3, center=True)
+    .alias("solar_modulation")
+)
+
+# Apply linear interpolation to fill null values in all past rows
+interpolated = view.filter(pl.col("year_bin") < 2024).fill_nan(None).interpolate()
+non_interpolated = view.filter(pl.col("year_bin") >= 2024)
+
+# Ensure interpolated has the same data types as non_interpolated (interpolate and None values can interfere with types)
+interpolated = interpolated.with_columns(
+    [pl.col(col).cast(non_interpolated.schema[col]) for col in interpolated.columns]
+)
+
+view = pl.concat([interpolated, non_interpolated], how="vertical").sort("year_bin")
+
+# Filter to only years with complete data
+view = view.filter((pl.col("year_bin") >= -740000) & (pl.col("year_bin") <= 2024))
+
+# Apply forward interpolation
+view = view.fill_null(strategy="forward")
+
+view = util.round_columns(view, num_places=3, exclude=["year_bin"])
+
+# %%
+# Export final datasets
+visualization_view.write_csv(
+    "Outputs/visualization_view.csv",
+)
+view.write_csv(
+    "Outputs/anomaly.csv",
+)
 # %%
