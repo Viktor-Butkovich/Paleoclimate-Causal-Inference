@@ -8,12 +8,17 @@ import polars as pl
 import netCDF4 as nc
 import numpy as np
 from scipy.io import loadmat
-from modules import util
+from scmrepo.git import Git
+
 import warnings
+from modules import util
 
 # %%
 # Extract web data files
+
+# Configurations
 warnings.filterwarnings("ignore", category=UserWarning)
+PACKAGE_ROOT = Git(root_dir=".").root_dir
 
 
 def download_file(url, filename):
@@ -33,47 +38,52 @@ def download_file(url, filename):
 data_sources = {
     "temp12k": {
         "url": "https://www.ncei.noaa.gov/pub/data/paleo/reconstructions/climate12k/temperature/version1.0.0/Temp12k_v1_0_0.pkl",
-        "path": "Data/Temp12k_v1_0_0.pkl",
+        "path": f"{PACKAGE_ROOT}/Data/Temp12k_v1_0_0.pkl",
         "source": "https://www.ncei.noaa.gov/access/paleo-search/study/27330",
     },
     "berkeley_earth": {
         "url": "https://berkeley-earth-temperature.s3.us-west-1.amazonaws.com/Global/Gridded/Land_and_Ocean_LatLong1.nc",
-        "path": "Data/Berkeley_Earth_Land_and_Ocean_LatLong1.nc",
+        "path": f"{PACKAGE_ROOT}/Data/Berkeley_Earth_Land_and_Ocean_LatLong1.nc",
         "source": "https://essd.copernicus.org/articles/12/3469/2020/essd-12-3469-2020.html",
     },
     "ice_core_800k": {
         "url": "https://www.ncei.noaa.gov/pub/data/paleo/icecore/antarctica/antarctica2015co2composite-noaa.txt",
-        "path": "Data/ice_core_800k_co2.txt",
+        "path": f"{PACKAGE_ROOT}/Data/ice_core_800k_co2.txt",
         "source": "https://www.ncei.noaa.gov/access/paleo-search/study/17975",
     },
     "co2_trends": {
         "url": "https://gml.noaa.gov/webdata/ccgg/trends/co2/co2_annmean_mlo.csv",
-        "path": "Data/co2_annmean_mlo.csv",
+        "path": f"{PACKAGE_ROOT}/Data/co2_annmean_mlo.csv",
         "source": "https://gml.noaa.gov/ccgg/trends/data.html",
     },
     "ecs_u1428": {
         "url": "http://www1.ncdc.noaa.gov/pub/data/paleo/contributions_by_author/anderson2018/anderson2018-u1428.txt",
-        "path": "Data/anderson2018-u1428.txt",
+        "path": f"{PACKAGE_ROOT}/Data/anderson2018-u1428.txt",
         "source": "https://www.ncdc.noaa.gov/paleo/study/27892",
     },
     "ecs_u1429": {
         "url": "http://www1.ncdc.noaa.gov/pub/data/paleo/contributions_by_author/anderson2018/anderson2018-u1429.txt",
-        "path": "Data/anderson2018-u1429.txt",
+        "path": f"{PACKAGE_ROOT}/Data/anderson2018-u1429.txt",
         "source": "https://www.ncdc.noaa.gov/paleo/study/27892",
     },
     "japansea_u1430": {
         "url": "http://www1.ncdc.noaa.gov/pub/data/paleo/contributions_by_author/anderson2019-c/anderson2019-u1430.txt",
-        "path": "Data/anderson2019-u1430.txt",
+        "path": f"{PACKAGE_ROOT}/Data/anderson2019-u1430.txt",
         "source": "https://www.ncdc.noaa.gov/paleo/study/27911",
     },
     "guaymas_2006b": {
         "url": "https://www.ncei.noaa.gov/pub/data/paleo/contributions_by_author/dean2006b/dean2006b.txt",
-        "path": "Data/dean2006b.txt",
+        "path": f"{PACKAGE_ROOT}/Data/dean2006b.txt",
         "source": "https://www.ncdc.noaa.gov/paleo/study/16054",
+    },
+    "steig_2000": {
+        "url": "https://www.ncei.noaa.gov/pub/data/paleo/icecore/antarctica/taylor/steig2000-betd-noaa.txt",
+        "path": f"{PACKAGE_ROOT}/Data/steig2000-betd-noaa.txt",
+        "source": "https://www.ncei.noaa.gov/access/paleo-search/study/2418",
     },
     "sint_2000": {
         "url": "https://github.com/kjg136/MLdipolePredictions/raw/main/Sint2000.mat",
-        "path": "Data/Sint2000.mat",
+        "path": f"{PACKAGE_ROOT}/Data/Sint2000.mat",
         "source": "https://doi.org/10.1093/gji/ggac195",
     },
 }
@@ -115,6 +125,11 @@ guaymas_2006b = pl.read_csv(
     truncate_ragged_lines=True,
 )
 sint_2000 = loadmat(data_sources["sint_2000"]["path"])
+steig_2000 = pl.read_csv(
+    data_sources["steig_2000"]["path"],
+    separator="\t",
+    comment_prefix="#",
+)
 
 # %%
 # Transform data into a tabular format
@@ -254,7 +269,7 @@ temperature_df = temperature_df.filter(
 
 # %%
 # Add modern temperature anomalies
-if not os.path.exists("Data/precomputed_modern_temperature.parquet"):
+if not os.path.exists(f"{PACKAGE_ROOT}/Data/precomputed_modern_temperature.parquet"):
     array_data = modern_temperature_grid.variables["temperature"][:]
     # Get the dimensions
     months, latitudes, longitudes = array_data.shape
@@ -358,10 +373,12 @@ if not os.path.exists("Data/precomputed_modern_temperature.parquet"):
         pl.col("geo_meanLat").cast(pl.Int64),
         pl.col("geo_meanLon").cast(pl.Int64),
     )
-    modern_temperature_df.write_parquet("Data/precomputed_modern_temperature.parquet")
+    modern_temperature_df.write_parquet(
+        f"{PACKAGE_ROOT}/Data/precomputed_modern_temperature.parquet"
+    )
 else:
     modern_temperature_df = pl.read_parquet(
-        "Data/precomputed_modern_temperature.parquet"
+        f"{PACKAGE_ROOT}/Data/precomputed_modern_temperature.parquet"
     )
 temperature_df = pl.concat(
     [
@@ -390,7 +407,7 @@ valid_year_bins = list(temperature_df["year_bin"].unique())
 
 # %%
 # Incorporate orbital simulation data (Milankovitch cycles)
-orbital_df = pl.read_csv("Manual/milankovitch_simulation.csv")
+orbital_df = pl.read_csv(f"{PACKAGE_ROOT}/Manual/milankovitch_simulation.csv")
 orbital_df = orbital_df.rename({"global.insolation": "global_insolation"})
 orbital_df = util.year_bins_transform(orbital_df, valid_year_bins)
 valid_year_bins += list(orbital_df["year_bin"].unique())
@@ -432,6 +449,11 @@ co2_df = co2_df.group_by("year_bin").agg(
 
 # %%
 # Incorporate Beryllium-10 sediment data
+"""
+Marsh 2014 relates Be-10 production rate to Phi through the ratio of modern Be-10 (which has plentiful datasets) to historical Be-10 records.
+    Make sure to find Be-10-specific datasets for analysis, not just general Beryllium datasets.
+steig_2000 dataset is promising, but uses different measurement units - re-verify calculations.
+"""
 be10_df = (
     pl.concat([ecs_u1428, ecs_u1429, japansea_u1430], how="vertical")
     .rename({"Be_ppm": "be_ppm"})
@@ -441,6 +463,7 @@ be10_df = (
     .select(["year", "be_ppm"])
     .sort("year")
 )
+
 """
 The Dean 2006b dataset massively swings between different Be10 values and seems to use different units than the Anderson datasets.
 be10_df = pl.concat(
@@ -549,9 +572,9 @@ view = util.round_columns(view, num_places=3, exclude=["year_bin"])
 # %%
 # Export final datasets
 visualization_view.write_csv(
-    "Outputs/visualization_view.csv",
+    f"{PACKAGE_ROOT}/Outputs/visualization_view.csv",
 )
 view.write_csv(
-    "Outputs/anomaly.csv",
+    f"{PACKAGE_ROOT}/Outputs/anomaly.csv",
 )
 # %%
