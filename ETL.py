@@ -7,6 +7,7 @@ import pickle as pkl
 import polars as pl
 import netCDF4 as nc
 import numpy as np
+from scipy.io import loadmat
 from modules import util
 import warnings
 
@@ -50,6 +51,31 @@ data_sources = {
         "path": "Data/co2_annmean_mlo.csv",
         "source": "https://gml.noaa.gov/ccgg/trends/data.html",
     },
+    "ecs_u1428": {
+        "url": "http://www1.ncdc.noaa.gov/pub/data/paleo/contributions_by_author/anderson2018/anderson2018-u1428.txt",
+        "path": "Data/anderson2018-u1428.txt",
+        "source": "https://www.ncdc.noaa.gov/paleo/study/27892",
+    },
+    "ecs_u1429": {
+        "url": "http://www1.ncdc.noaa.gov/pub/data/paleo/contributions_by_author/anderson2018/anderson2018-u1429.txt",
+        "path": "Data/anderson2018-u1429.txt",
+        "source": "https://www.ncdc.noaa.gov/paleo/study/27892",
+    },
+    "japansea_u1430": {
+        "url": "http://www1.ncdc.noaa.gov/pub/data/paleo/contributions_by_author/anderson2019-c/anderson2019-u1430.txt",
+        "path": "Data/anderson2019-u1430.txt",
+        "source": "https://www.ncdc.noaa.gov/paleo/study/27911",
+    },
+    "guaymas_2006b": {
+        "url": "https://www.ncei.noaa.gov/pub/data/paleo/contributions_by_author/dean2006b/dean2006b.txt",
+        "path": "Data/dean2006b.txt",
+        "source": "https://www.ncdc.noaa.gov/paleo/study/16054",
+    },
+    "sint_2000": {
+        "url": "https://github.com/kjg136/MLdipolePredictions/raw/main/Sint2000.mat",
+        "path": "Data/Sint2000.mat",
+        "source": "https://doi.org/10.1093/gji/ggac195",
+    },
 }
 for data_source in data_sources.values():
     download_file(data_source["url"], data_source["path"])
@@ -64,6 +90,31 @@ ice_core_800k = pl.read_csv(
     comment_prefix="#",
 )
 co2_annmean_mlo = pl.read_csv(data_sources["co2_trends"]["path"], comment_prefix="#")
+ecs_u1428 = pl.read_csv(
+    data_sources["ecs_u1428"]["path"],
+    separator="\t",
+    comment_prefix="#",
+    truncate_ragged_lines=True,
+).select(["age_ka-BP", "Be_ppm"])
+ecs_u1429 = pl.read_csv(
+    data_sources["ecs_u1429"]["path"],
+    separator="\t",
+    comment_prefix="#",
+    truncate_ragged_lines=True,
+).select(["age_ka-BP", "Be_ppm"])
+japansea_u1430 = pl.read_csv(
+    data_sources["japansea_u1430"]["path"],
+    separator="\t",
+    comment_prefix="#",
+    truncate_ragged_lines=True,
+).select(["age_ka-BP", "Be_ppm"])
+guaymas_2006b = pl.read_csv(
+    data_sources["guaymas_2006b"]["path"],
+    separator="\t",
+    comment_prefix="#",
+    truncate_ragged_lines=True,
+)
+sint_2000 = loadmat(data_sources["sint_2000"]["path"])
 
 # %%
 # Transform data into a tabular format
@@ -379,4 +430,55 @@ co2_df = co2_df.group_by("year_bin").agg(
     pl.col("co2_radiative_forcing").last().alias("co2_radiative_forcing"),
 )
 
+# %%
+# Incorporate Beryllium-10 sediment data
+be10_df = (
+    pl.concat([ecs_u1428, ecs_u1429, japansea_u1430], how="vertical")
+    .rename({"Be_ppm": "be_ppm"})
+    .with_columns(((1950 - (pl.col("age_ka-BP") * 1000)).alias("year")))
+    .filter(pl.col("year") >= min(valid_year_bins))
+    .filter(pl.col("be_ppm") != 999999)  # Remove missing values
+    .select(["year", "be_ppm"])
+    .sort("year")
+)
+"""
+The Dean 2006b dataset massively swings between different Be10 values and seems to use different units than the Anderson datasets.
+be10_df = pl.concat(
+    [
+        be10_df,
+        guaymas_2006b.with_columns(
+            ((1950 - (pl.col("age_calkaBP") * 1000)).alias("year"))
+        )
+        .rename({"Be ppm": "be_ppm"})
+        .select(["year", "be_ppm"]),
+    ],
+    how="vertical",
+)
+"""
+
+# Assign year bins and aggregate Be10 concentrations
+be10_df = util.year_bins_transform(be10_df, valid_year_bins)
+# %%
+# Incorporate VADM magnetic field strength
+vadm_df = pl.DataFrame(
+    {
+        "year": ((sint_2000["t"] * 1000) + 3000).flatten().round().astype(int),
+        "VADM": sint_2000["d"].flatten(),
+    }
+).filter(pl.col("year") >= min(valid_year_bins))
+vadm_df = util.year_bins_transform(vadm_df, valid_year_bins).with_columns(
+    pl.col("VADM").abs().alias("VADM")
+)
+cosmic_df = be10_df.join(vadm_df, on="year_bin", how="left")
+
+# %%
+# Calculate solar modulation from magnetic field strength and Be10 concentration
+cosmic_df = cosmic_df.with_columns(
+    pl.struct(["be_ppm", "VADM"])
+    .map_elements(
+        lambda row: util.calculate_solar_modulation(row["be_ppm"], row["VADM"]),
+        return_dtype=pl.Float64,
+    )
+    .alias("solar_modulation")
+)
 # %%
