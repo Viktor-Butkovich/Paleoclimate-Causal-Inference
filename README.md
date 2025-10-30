@@ -39,6 +39,8 @@ environment and update dependencies as needed.
 
 See preprocessed dataset in `Outputs/anomaly.csv` and raw dataset in `Outputs/visualization_view.csv`. These datasets may be created by activating the virtual Python environment and running the ETL script `ETL.py`, which extracts, transforms, and loads (exports to .csv) the data from the original sources.
 
+To run `DAG.r`, execute the script with `Run Source With Echo` (`ctrl + shift + enter` default in VS Code). This is equivalent to executing the code in RStudio, or copy-pasting the code into an R console.
+
 # Data Dictionary:
 * **year_bin**: Year AD, grouped into bins of 2k years (e.g. -4000, -2000, 0, 2000, etc.).
 * **anomaly**: Degrees Celsius anomaly relative to Berkeley Earth's 1961-1990 baseline.
