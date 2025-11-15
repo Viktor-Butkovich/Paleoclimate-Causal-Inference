@@ -12,6 +12,7 @@ from scmrepo.git import Git
 
 import warnings
 from modules import util
+from typing import Tuple
 
 # %%
 # Extract web data files
@@ -23,16 +24,16 @@ PACKAGE_ROOT = Git(root_dir=".").root_dir
 
 def download_file(url, filename):
     if os.path.exists(filename):
-        print(f"{filename} already exists. Skipping download.")
+        print(f"{os.path.basename(filename)} already exists. Skipping download.")
         return
     os.makedirs(os.path.dirname(filename), exist_ok=True)
-    print(f"Downloading {filename} from {url}...")
+    print(f"Downloading {os.path.basename(filename)} from {url}...")
     response = requests.get(url, stream=True)
     response.raise_for_status()
     with open(filename, "wb") as f:
         for chunk in response.iter_content(chunk_size=8192):
             f.write(chunk)
-    print(f"Saved {filename}")
+    print(f"Saved {os.path.basename(filename)}")
 
 
 data_sources = {
@@ -86,6 +87,11 @@ data_sources = {
         "path": f"{PACKAGE_ROOT}/Data/Sint2000.mat",
         "source": "https://doi.org/10.1093/gji/ggac195",
     },
+    "steinhilber_9k": {
+        "url": "https://www.ncei.noaa.gov/pub/data/paleo/climate_forcing/solar_variability/steinhilber2012-noaa.txt",
+        "path": f"{PACKAGE_ROOT}/Data/steinhilber_9k.txt",
+        "source": "https://www.ncei.noaa.gov/access/paleo-search/study/12894",
+    },
 }
 for data_source in data_sources.values():
     download_file(data_source["url"], data_source["path"])
@@ -127,6 +133,11 @@ guaymas_2006b = pl.read_csv(
 sint_2000 = loadmat(data_sources["sint_2000"]["path"])
 steig_2000 = pl.read_csv(
     data_sources["steig_2000"]["path"],
+    separator="\t",
+    comment_prefix="#",
+)
+steinhilber_9k = pl.read_csv(
+    data_sources["steinhilber_9k"]["path"],
     separator="\t",
     comment_prefix="#",
 )
@@ -448,62 +459,14 @@ co2_df = co2_df.group_by("year_bin").agg(
 )
 
 # %%
-# Incorporate Beryllium-10 sediment data
-"""
-Marsh 2014 relates Be-10 production rate to Phi through the ratio of modern Be-10 (which has plentiful datasets) to historical Be-10 records.
-    Make sure to find Be-10-specific datasets for analysis, not just general Beryllium datasets.
-steig_2000 dataset is promising, but uses different measurement units - re-verify calculations.
-"""
-be10_df = (
-    pl.concat([ecs_u1428, ecs_u1429, japansea_u1430], how="vertical")
-    .rename({"Be_ppm": "be_ppm"})
-    .with_columns(((1950 - (pl.col("age_ka-BP") * 1000)).alias("year")))
-    .filter(pl.col("year") >= min(valid_year_bins))
-    .filter(pl.col("be_ppm") != 999999)  # Remove missing values
-    .select(["year", "be_ppm"])
-    .sort("year")
+# Use pre-computed solar modulation records
+cosmic_df = (
+    steinhilber_9k.select("age_calBP", "Phi")
+    .with_columns((1950 - pl.col("age_calBP")).alias("year"))
+    .rename({"Phi": "solar_modulation"})
+    .drop("age_calBP")
 )
-
-"""
-The Dean 2006b dataset massively swings between different Be10 values and seems to use different units than the Anderson datasets.
-be10_df = pl.concat(
-    [
-        be10_df,
-        guaymas_2006b.with_columns(
-            ((1950 - (pl.col("age_calkaBP") * 1000)).alias("year"))
-        )
-        .rename({"Be ppm": "be_ppm"})
-        .select(["year", "be_ppm"]),
-    ],
-    how="vertical",
-)
-"""
-
-# Assign year bins and aggregate Be10 concentrations
-be10_df = util.year_bins_transform(be10_df, valid_year_bins)
-# %%
-# Incorporate VADM magnetic field strength
-vadm_df = pl.DataFrame(
-    {
-        "year": ((sint_2000["t"] * 1000) + 3000).flatten().round().astype(int),
-        "VADM": sint_2000["d"].flatten(),
-    }
-).filter(pl.col("year") >= min(valid_year_bins))
-vadm_df = util.year_bins_transform(vadm_df, valid_year_bins).with_columns(
-    pl.col("VADM").abs().alias("VADM")
-)
-cosmic_df = be10_df.join(vadm_df, on="year_bin", how="left")
-
-# %%
-# Calculate solar modulation from magnetic field strength and Be10 concentration
-cosmic_df = cosmic_df.with_columns(
-    pl.struct(["be_ppm", "VADM"])
-    .map_elements(
-        lambda row: util.calculate_solar_modulation(row["be_ppm"], row["VADM"]),
-        return_dtype=pl.Float64,
-    )
-    .alias("solar_modulation")
-)
+cosmic_df = util.year_bins_transform(cosmic_df, valid_year_bins)
 
 # %%
 # Aggregate temperature across locations by year bin
@@ -532,49 +495,94 @@ visualization_view = util.round_columns(
     num_places=3,
     exclude=["year_bin"],
 ).sort("year_bin")
+
+
 # %%
-# Clean the data
+# Clean and bin the data
+def preprocess(
+    df: pl.DataFrame,
+    year_range: Tuple[int, int],
+    bin_frequency: int,
+) -> pl.DataFrame:
+    # Aggregate data to have a constant frequency of 2000 years
+    view = (
+        df.with_columns(
+            (pl.col("year_bin") // bin_frequency * bin_frequency).alias("year_bin")
+        )
+        .group_by("year_bin")
+        .agg(pl.all().mean())
+    ).sort("year_bin")
 
-# Aggregate data to have a constant frequency of 2000 years
-view = (
-    view.with_columns((pl.col("year_bin") // 2000 * 2000).alias("year_bin"))
-    .group_by("year_bin")
-    .agg(pl.all().mean())
-).sort("year_bin")
+    # Apply linear interpolation to fill null values in all past rows
+    interpolated = (
+        view.filter(pl.col("year_bin") < year_range[1]).fill_nan(None).interpolate()
+    )
+    non_interpolated = view.filter(pl.col("year_bin") >= year_range[1])
+
+    # Ensure interpolated has the same data types as non_interpolated (interpolate and None values can interfere with types)
+    interpolated = interpolated.with_columns(
+        [pl.col(col).cast(non_interpolated.schema[col]) for col in interpolated.columns]
+    )
+
+    view = pl.concat([interpolated, non_interpolated], how="vertical").sort("year_bin")
+
+    # Filter to only years with complete data
+    view = view.filter(
+        (pl.col("year_bin") >= year_range[0]) & (pl.col("year_bin") <= year_range[1])
+    )
+
+    # Apply forward interpolation
+    view = view.fill_null(strategy="forward")
+
+    view = util.round_columns(view, num_places=3, exclude=["year_bin"])
+    return view
 
 
-# Apply a rolling mean to the solar_modulation column - helps with sparse data
-view = view.with_columns(
-    pl.col("solar_modulation")
-    .rolling_mean(window_size=3, center=True)
-    .alias("solar_modulation")
+view_742k = preprocess(
+    view.select(
+        [
+            "year_bin",
+            "anomaly",
+            "co2_ppm",
+            "co2_radiative_forcing",
+            "eccentricity",
+            "obliquity",
+            "perihelion",
+            "insolation",
+            "global_insolation",
+        ]
+    ),
+    year_range=(-740000, 2024),
+    bin_frequency=2000,
 )
-
-# Apply linear interpolation to fill null values in all past rows
-interpolated = view.filter(pl.col("year_bin") < 2024).fill_nan(None).interpolate()
-non_interpolated = view.filter(pl.col("year_bin") >= 2024)
-
-# Ensure interpolated has the same data types as non_interpolated (interpolate and None values can interfere with types)
-interpolated = interpolated.with_columns(
-    [pl.col(col).cast(non_interpolated.schema[col]) for col in interpolated.columns]
+view_9k = preprocess(
+    view.select(
+        [
+            "year_bin",
+            "anomaly",
+            "co2_ppm",
+            "co2_radiative_forcing",
+            "eccentricity",
+            "obliquity",
+            "perihelion",
+            "insolation",
+            "global_insolation",
+            "solar_modulation",
+        ]
+    ),
+    year_range=(-7400, 2024),
+    bin_frequency=50,
 )
-
-view = pl.concat([interpolated, non_interpolated], how="vertical").sort("year_bin")
-
-# Filter to only years with complete data
-view = view.filter((pl.col("year_bin") >= -740000) & (pl.col("year_bin") <= 2024))
-
-# Apply forward interpolation
-view = view.fill_null(strategy="forward")
-
-view = util.round_columns(view, num_places=3, exclude=["year_bin"])
 
 # %%
 # Export final datasets
 visualization_view.write_csv(
     f"{PACKAGE_ROOT}/Outputs/visualization_view.csv",
 )
-view.write_csv(
-    f"{PACKAGE_ROOT}/Outputs/anomaly.csv",
+view_742k.write_csv(
+    f"{PACKAGE_ROOT}/Outputs/anomaly_742k.csv",
+)
+view_9k.write_csv(
+    f"{PACKAGE_ROOT}/Outputs/anomaly_9k.csv",
 )
 # %%

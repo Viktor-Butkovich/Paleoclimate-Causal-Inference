@@ -8,10 +8,8 @@ from sklearn.preprocessing import StandardScaler
 def get_year_bin(year: int) -> int:
     if year < -800000:  # Nearest 50,000
         return round(year / 50000) * 50000
-    elif year < -20000:  # Nearest 2000
+    elif year < -10000:  # Nearest 2000
         return round(year / 2000) * 2000
-    elif year < 0:  # Nearest 250
-        return round(year / 250) * 250
     elif year < 1850:  # Nearest 50
         return round(year / 50) * 50
     elif year < 2025:  # Nearest 1
@@ -164,36 +162,6 @@ def get_anomaly_when(
         return get_anomaly_when_month(
             modern_temperature_grid, lat, lon, year, month_idx
         )
-
-
-def calculate_solar_modulation(Q, M):
-    """
-    Calculate the solar modulation potential based on the given formula.
-    Q = (1 / (a + b * phi)) * (c + M) / (d = eM)
-    a, b, c, d, and e are known constants
-        a = 0.7476
-        b = 0.2458
-        c = 2.347
-        d = 1.077
-        e = 2.274
-    Q is the production rate of beryllium-10
-    M is the geomagnetic field strength
-    phi is the solar modulation, which we want to solve for
-    By https://onlinelibrary.wiley.com/doi/full/10.1155/2014/345482?msockid=00f9caf6c69469371ab8dbfbc73c68e1:
-        This formula relates beryllium-10 production rate with geomagnetic field strength and solar modulation potential
-        Solar modulation potential is how much the sun reduces the intensity of cosmic rays reaching the Earth
-            More intense cosmic rays cause more clouds, decreasing temperature, so high solar modulation potential means less clouds
-            The inverse of solar modulation potential is an effective temperature predictor
-    """
-    a = 0.7476
-    b = 0.2458
-    c = 2.347
-    d = 1.077
-    e = 2.274
-    if Q is None or M is None:
-        return None
-    phi = (1 / (a + b * ((c + M) / (d + e * M)) / Q)) - a
-    return phi
 
 
 def round_columns(df, num_places, exclude=None):
