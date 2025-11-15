@@ -575,6 +575,30 @@ view_9k = preprocess(
 )
 
 # %%
+# Create min-max normalized versions of the datasets (min 0, max 1)
+normalized_view_742k = view_742k.with_columns(
+    [
+        (
+            (pl.col(col) - pl.col(col).min()) / (pl.col(col).max() - pl.col(col).min())
+        ).alias(col)
+        for col in [
+            col for col in view_742k.columns if col not in ["year_bin", "anomaly"]
+        ]
+    ]
+)
+
+normalized_view_9k = view_9k.with_columns(
+    [
+        (
+            (pl.col(col) - pl.col(col).min()) / (pl.col(col).max() - pl.col(col).min())
+        ).alias(col)
+        for col in [
+            col for col in view_9k.columns if col not in ["year_bin", "anomaly"]
+        ]
+    ]
+)
+
+# %%
 # Export final datasets
 visualization_view.write_csv(
     f"{PACKAGE_ROOT}/Outputs/visualization_view.csv",
@@ -585,4 +609,11 @@ view_742k.write_csv(
 view_9k.write_csv(
     f"{PACKAGE_ROOT}/Outputs/anomaly_9k.csv",
 )
+normalized_view_742k.write_csv(
+    f"{PACKAGE_ROOT}/Outputs/normalized_anomaly_742k.csv",
+)
+normalized_view_9k.write_csv(
+    f"{PACKAGE_ROOT}/Outputs/normalized_anomaly_9k.csv",
+)
+
 # %%

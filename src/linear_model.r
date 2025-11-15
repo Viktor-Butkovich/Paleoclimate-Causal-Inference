@@ -10,7 +10,7 @@ if (!requireNamespace("tidyverse", quietly = TRUE)) {
 library(here)
 library(tidyverse)
 
-df <- read_csv(here("Outputs", "anomaly_9k.csv"))
+df <- read_csv(here("Outputs", "normalized_anomaly_9k.csv"))
 df
 
 # Only include treatment and confounders that need to be adjusted for
