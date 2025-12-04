@@ -20,9 +20,9 @@ library(tidyverse)
 annotations <- c(
     A = "A: CO2 concentration",
     X1 = "X1: Milankovitch cycles",
-    X2 = "X2: Beryllium-10 (cosmic ray flux proxy)",
-    X3 = "X3: VADM (geomagnetic proxy)",
-    X4 = "X4: Solar modulation (derived)",
+    X2 = "X2: Beryllium-10 (cosmic ray flux proxy, unused)",
+    X3 = "X3: VADM (geomagnetic proxy, unused)",
+    X4 = "X4: Solar modulation",
     X5 = "X5: CO2 radiative forcing",
     X6 = "X6: Volcanic forcing",
     U1 = "U1: Actual anomaly",
