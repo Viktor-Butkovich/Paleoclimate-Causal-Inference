@@ -24,6 +24,7 @@ annotations <- c(
     X3 = "X3: VADM (geomagnetic proxy)",
     X4 = "X4: Solar modulation (derived)",
     X5 = "X5: CO2 radiative forcing",
+    X6 = "X6: Volcanic forcing",
     U1 = "U1: Actual anomaly",
     U2 = "U2: Magnetic field strength",
     U3 = "U3: Cosmic ray flux",
@@ -43,6 +44,7 @@ node_types <- c(
     X3 = "Measured",
     X4 = "Measured",
     X5 = "Measured",
+    X6 = "Measured",
     U1 = "Unmeasured",
     U2 = "Unmeasured",
     U3 = "Unmeasured",
@@ -64,6 +66,8 @@ g <- dagitty("dag {
   X1 -> A
   X4 -> U3
   X5 -> U1
+  X6 -> U1
+  X6 -> A
   U1 -> Y
   U2 -> X3
   U2 -> U3
@@ -75,18 +79,18 @@ g <- dagitty("dag {
 # Manual coordinate assignment
 coords <- list(
     x = c(
-        X1 = 0.9, X4 = 1.5, U2 = 1.8, # Layer 1 (top)
-        A = 1, U3 = 1.5, X3 = 1.8, # Layer 2
-        X5 = 1, X2 = 1.5, # Layer 3
-        U1 = 0.9, # Layer 4
-        Y = 0.9 # Layer 5 (bottom)
+        X1 = 0.9, X4 = 1.5, U2 = 1.8,
+        A = 1.3, U3 = 1.5, X3 = 1.8,
+        X5 = 1, X6 = 1.0, X2 = 1.5,
+        U1 = 0.9,
+        Y = 0.9
     ),
     y = c(
-        X1 = 6, X4 = 6, U2 = 6, # Layer 1
-        A = 4, U3 = 5, X3 = 5, # Layer 2
-        X5 = 3, X2 = 4, # Layer 3
-        U1 = 2, # Layer 4
-        Y = 1 # Layer 5
+        X1 = 6, X4 = 6, U2 = 6,
+        A = 4, U3 = 5, X3 = 5,
+        X5 = 3.3, X6 = 4.7, X2 = 4,
+        U1 = 2,
+        Y = 1
     )
 )
 
