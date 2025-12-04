@@ -92,6 +92,11 @@ data_sources = {
         "path": f"{PACKAGE_ROOT}/Data/steinhilber_9k.txt",
         "source": "https://www.ncei.noaa.gov/access/paleo-search/study/12894",
     },
+    "kobashi_11k": {
+        "url": "https://www.ncei.noaa.gov/pub/data/paleo/reconstructions/kobashi2017/kobashi2017volc-noaa.txt",
+        "source": "https://www.ncei.noaa.gov/access/paleo-search/study/22057",
+        "path": f"{PACKAGE_ROOT}/Data/kobashi_11k.txt",
+    },
 }
 for data_source in data_sources.values():
     download_file(data_source["url"], data_source["path"])
@@ -138,6 +143,11 @@ steig_2000 = pl.read_csv(
 )
 steinhilber_9k = pl.read_csv(
     data_sources["steinhilber_9k"]["path"],
+    separator="\t",
+    comment_prefix="#",
+)
+kobashi_11k = pl.read_csv(
+    data_sources["kobashi_11k"]["path"],
     separator="\t",
     comment_prefix="#",
 )
@@ -469,6 +479,15 @@ cosmic_df = (
 cosmic_df = util.year_bins_transform(cosmic_df, valid_year_bins)
 
 # %%
+volcanic_df = (
+    kobashi_11k.select("age_calBP", "VF")
+    .with_columns((1950 - pl.col("age_calBP")).alias("year"))
+    .rename({"VF": "volcanic_forcing"})
+    .drop("age_calBP")
+)
+volcanic_df = util.year_bins_transform(volcanic_df, valid_year_bins)
+
+# %%
 # Aggregate temperature across locations by year bin
 view = (
     temperature_df.group_by("year_bin")
@@ -486,6 +505,7 @@ view = (
     .with_columns(pl.col("co2_ppm").cast(pl.Float64))
     .join(orbital_df, on="year_bin", how="left")
     .join(cosmic_df, on="year_bin", how="left")
+    .join(volcanic_df, on="year_bin", how="left")
 )
 
 # %%
@@ -568,6 +588,7 @@ view_9k = preprocess(
             "insolation",
             "global_insolation",
             "solar_modulation",
+            "volcanic_forcing",
         ]
     ),
     year_range=(-7400, 2024),

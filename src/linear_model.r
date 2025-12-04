@@ -14,5 +14,5 @@ df <- read_csv(here("Outputs", "normalized_anomaly_9k.csv"))
 df
 
 # Only include treatment and confounders that need to be adjusted for
-model <- lm(anomaly ~ co2_radiative_forcing + eccentricity + obliquity + perihelion + insolation + global_insolation + solar_modulation, data = df)
+model <- lm(anomaly ~ co2_radiative_forcing + eccentricity + obliquity + perihelion + insolation + global_insolation + solar_modulation + volcanic_forcing, data = df)
 summary(model)
