@@ -1,5 +1,5 @@
 # Execute in VS Code with `Run Source With Echo` (default `ctrl + shift + enter`)
-
+options(repos = c(CRAN = "https://cloud.r-project.org"))
 if (!requireNamespace("here", quietly = TRUE)) {
     install.packages("here")
 }

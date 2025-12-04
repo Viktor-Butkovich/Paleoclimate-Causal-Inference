@@ -1,8 +1,16 @@
-if (!requireNamespace("here", quietly = TRUE)) {
-    install.packages("here")
+options(repos = c(CRAN = "https://cloud.r-project.org"))
+required_pkgs <- c("here", "tidyverse", "data.table", "remotes", "haldensify", "Rsolnp", "xgboost", "nnls")
+for (pkg in required_pkgs) {
+  if (!requireNamespace(pkg, quietly = TRUE)) {
+    install.packages(pkg)
+  }
 }
-if (!requireNamespace("tidyverse", quietly = TRUE)) {
-    install.packages("tidyverse")
+github_pkgs <- c("tlverse/sl3", "tlverse/tmle3", "tlverse/tmle3shift")
+for (pkg in github_pkgs) {
+  pkg_name <- unlist(strsplit(pkg, "/"))[2]
+  if (!requireNamespace(pkg_name, quietly = TRUE)) {
+    remotes::install_github(pkg)
+  }
 }
 
 library(here)
@@ -18,12 +26,12 @@ library(tmle3)
 library(tmle3shift)
 
 # Note: Remove solar_modulation from list if using the 742k dataset
-data <- bf [,c("eccentricity", "obliquity", "perihelion", "insolation", "global_insolation", "solar_modulation","co2_ppm","anomaly"), with = FALSE]
+data <- bf[, c("eccentricity", "obliquity", "perihelion", "insolation", "global_insolation", "solar_modulation", "co2_ppm", "anomaly"), with = FALSE]
 data <- as.data.table(data)
 node_list <- list(
   W = c("eccentricity", "obliquity", "perihelion", "insolation", "global_insolation", "solar_modulation"),
-  A = "co2_ppm",                          
-  Y = "anomaly"                            
+  A = "co2_ppm",
+  Y = "anomaly"
 )
 head(data)
 
@@ -42,8 +50,10 @@ haldensify_lrnr <- Lrnr_haldensify$new(
   lambda_seq = exp(seq(-1, -7, length = 50))
 )
 hse_lrnr <- Lrnr_density_semiparametric$new(mean_learner = Lrnr_glm$new())
-mvd_lrnr <- Lrnr_density_semiparametric$new(mean_learner = Lrnr_glm$new(),
-                                            var_learner = Lrnr_mean$new())
+mvd_lrnr <- Lrnr_density_semiparametric$new(
+  mean_learner = Lrnr_glm$new(),
+  var_learner = Lrnr_mean$new()
+)
 sl_lrn_dens <- Lrnr_sl$new(
   learners = list(haldensify_lrnr, hse_lrnr, mvd_lrnr),
   metalearner = Lrnr_solnp_density$new()
@@ -66,5 +76,3 @@ learner_list <- list(Y = Q_learner, A = g_learner)
 tmle_fit <- tmle3(tmle_spec, data, node_list, learner_list)
 
 tmle_fit
-
-
