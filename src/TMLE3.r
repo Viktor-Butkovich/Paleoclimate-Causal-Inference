@@ -25,11 +25,11 @@ library(sl3)
 library(tmle3)
 library(tmle3shift)
 
-# Note: Remove solar_modulation from list if using the 742k dataset
-data <- bf[, c("eccentricity", "obliquity", "perihelion", "insolation", "global_insolation", "solar_modulation", "co2_ppm", "anomaly"), with = FALSE]
+# Note: Remove solar_modulation and volcanic_forcing from the list if using the 742k dataset
+data <- bf [,c("eccentricity", "obliquity", "perihelion", "insolation", "global_insolation", "solar_modulation", "volcanic_forcing", "co2_ppm", "anomaly"), with = FALSE]
 data <- as.data.table(data)
 node_list <- list(
-  W = c("eccentricity", "obliquity", "perihelion", "insolation", "global_insolation", "solar_modulation"),
+  W = c("eccentricity", "obliquity", "perihelion", "insolation", "global_insolation", "solar_modulation", "volcanic_forcing"),
   A = "co2_ppm",
   Y = "anomaly"
 )
