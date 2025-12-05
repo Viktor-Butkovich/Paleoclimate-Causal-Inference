@@ -29,9 +29,9 @@ annotations <- c(
     U2 = "U2: Magnetic field strength",
     U3 = "U3: Cosmic ray flux",
     Y = "Y: Measured anomaly (via proxies)",
-    C = "Measured external climate drivers: Volcanic forcing,\n solar modulation, milankovitch cycles",
+    C = "Measured climate drivers: Volcanic forcing,\n solar modulation, milankovitch cycles",
     U = "Unmeasured climate drivers: Magnetic field\n strength, Earth's geological processes",
-    M = "Climate system mediators: Soil/rock processes, vegetation cover,\n ocean circulation, ice sheet dynamics"
+    M = "Climate mediators: Soil/rock processes, vegetation cover,\n ocean circulation, ice sheet dynamics"
 )
 
 unmeasured_color <- "#E8E8E8" # Light gray for unmeasured
