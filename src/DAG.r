@@ -28,7 +28,10 @@ annotations <- c(
     U1 = "U1: Actual anomaly",
     U2 = "U2: Magnetic field strength",
     U3 = "U3: Cosmic ray flux",
-    Y = "Y: Measured anomaly (via proxies)"
+    Y = "Y: Measured anomaly (via proxies)",
+    C = "Measured external climate drivers: Volcanic forcing,\n solar modulation, milankovitch cycles",
+    U = "Unmeasured climate drivers: Magnetic field\n strength, Earth's geological processes",
+    M = "Climate system mediators: Soil/rock processes, vegetation cover,\n ocean circulation, ice sheet dynamics"
 )
 
 unmeasured_color <- "#E8E8E8" # Light gray for unmeasured
@@ -48,7 +51,10 @@ node_types <- c(
     U1 = "Unmeasured",
     U2 = "Unmeasured",
     U3 = "Unmeasured",
-    Y = "Outcome"
+    Y = "Outcome",
+    C = "Measured",
+    U = "Unmeasured",
+    M = "Unmeasured"
 )
 
 # Map types to colors
@@ -74,6 +80,10 @@ g <- dagitty("dag {
   U3 -> X2
   U3 -> U1
   U3 -> A
+  C -> M
+  U -> M
+  M -> U1
+  M -> A
 }")
 
 # Manual coordinate assignment
@@ -81,16 +91,16 @@ coords <- list(
     x = c(
         X1 = 0.9, X4 = 1.5, U2 = 1.8,
         A = 1.3, U3 = 1.5, X3 = 1.8,
-        X5 = 1, X6 = 1.0, X2 = 1.5,
+        X5 = 1, X6 = 1.0, X2 = 1.65,
         U1 = 0.9,
-        Y = 0.9
+        Y = 0.9, C = 2.0, U = 2.4, M = 2.2
     ),
     y = c(
         X1 = 6, X4 = 6, U2 = 6,
         A = 4, U3 = 5, X3 = 5,
-        X5 = 3.3, X6 = 4.7, X2 = 4,
+        X5 = 3.3, X6 = 4.7, X2 = 4.2,
         U1 = 2,
-        Y = 1
+        Y = 1, C = 4, U = 4, M = 3
     )
 )
 
