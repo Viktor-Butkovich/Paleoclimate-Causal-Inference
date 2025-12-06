@@ -31,7 +31,7 @@ annotations <- c(
     Y = "Y: Measured anomaly (via proxies)",
     C = "Measured climate drivers: Volcanic forcing,\n solar modulation, milankovitch cycles",
     U = "Unmeasured climate drivers: Magnetic field\n strength, Earth's geological processes",
-    M = "Climate mediators: Soil/rock processes, vegetation cover,\n ocean circulation, ice sheet dynamics"
+    M = "Climate mediators: Soil/rock processes, vegetation\ncover, ocean circulation, ice sheet dynamics"
 )
 
 unmeasured_color <- "#E8E8E8" # Light gray for unmeasured
@@ -93,14 +93,14 @@ coords <- list(
         A = 1.3, U3 = 1.5, X3 = 1.8,
         X5 = 1, X6 = 1.0, X2 = 1.65,
         U1 = 0.9,
-        Y = 0.9, C = 2.0, U = 2.4, M = 2.2
+        Y = 0.9, C = 1.85, U = 1.95, M = 1.95
     ),
     y = c(
         X1 = 6, X4 = 6, U2 = 6,
         A = 4, U3 = 5, X3 = 5,
         X5 = 3.3, X6 = 4.7, X2 = 4.2,
         U1 = 2,
-        Y = 1, C = 4, U = 4, M = 3
+        Y = 1, C = 3.8, U = 4.6, M = 3
     )
 )
 
@@ -127,7 +127,7 @@ ggdag(g, text = FALSE) +
     )
 ggsave(
     filename = here("Outputs", "Paleoclimate_Causal_DAG.png"),
-    width = 18,
+    width = 24,
     height = 12,
     dpi = 300
 )

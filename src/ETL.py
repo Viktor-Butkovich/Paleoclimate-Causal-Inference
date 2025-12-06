@@ -94,8 +94,8 @@ data_sources = {
     },
     "kobashi_11k": {
         "url": "https://www.ncei.noaa.gov/pub/data/paleo/reconstructions/kobashi2017/kobashi2017volc-noaa.txt",
-        "source": "https://www.ncei.noaa.gov/access/paleo-search/study/22057",
         "path": f"{PACKAGE_ROOT}/Data/kobashi_11k.txt",
+        "source": "https://www.ncei.noaa.gov/access/paleo-search/study/22057",
     },
 }
 for data_source in data_sources.values():
