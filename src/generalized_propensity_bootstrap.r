@@ -155,25 +155,26 @@ plot_bootstrap <- function(bootstrap_df, name, file_path) {
     )
 }
 
-
+# 742k dataset
 df_742k <- read_csv(here("Outputs", "anomaly_742k.csv"))
 confounders <- c("eccentricity", "obliquity", "perihelion", "insolation", "global_insolation")
 set.seed(42)
-bootstrap_df <- bootstrap_gps_dose_response(df_742k, confounders, n = 1000)
-head(bootstrap_df)
+bootstrap_df_742k <- bootstrap_gps_dose_response(df_742k, confounders, n = 1000)
+head(bootstrap_df_742k)
 plot_bootstrap(
-    bootstrap_df,
+    bootstrap_df_742k,
     "Dose-Response Function (with 95% Bootstrap Confidence Interval) from Past 742k Years",
     "GPS_Dose_Response_Function_Bootstrap_742k.png"
 )
 
+# 9k dataset
 df_9k <- read_csv(here("Outputs", "anomaly_9k.csv"))
 confounders <- c("eccentricity", "obliquity", "perihelion", "insolation", "global_insolation", "solar_modulation", "volcanic_forcing")
 set.seed(42)
-bootstrap_df <- bootstrap_gps_dose_response(df_9k, confounders, n = 1000)
-head(bootstrap_df)
+bootstrap_df_9k <- bootstrap_gps_dose_response(df_9k, confounders, n = 1000)
+head(bootstrap_df_9k)
 plot_bootstrap(
-    bootstrap_df,
+    bootstrap_df_9k,
     "Dose-Response Function (with 95% Bootstrap Confidence Interval) from Past 9k Years",
     "GPS_Dose_Response_Function_Bootstrap_9k.png"
 )
