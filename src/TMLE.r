@@ -18,7 +18,7 @@ bf
 
 library(data.table)
 
-# Note: Remove solar_modulation and volcanic_forcing from the list if using the 742k dataset
+# Note: Remove solar_modulation and volcanic_forcing from the list if using the 742k dataset; remove "volcanic_forcing" to run old version
 ObsData <- data.frame()
 ObsData <- as.data.table(bf)
 ObsData <- bf [,c("eccentricity", "obliquity", "perihelion", "insolation", "global_insolation", "solar_modulation", "volcanic_forcing"), with = FALSE]          
