@@ -27,34 +27,45 @@ df$gps_hat <- dnorm(df$co2_radiative_forcing, mean = df$mu_hat, sd = sigma_hat)
 df_balance <- df %>%
     mutate(gps_strata = ntile(gps_hat, 10)) # 10 equal-sized strata
 
-# Compute mean of each confounder in each strata
-balance_summary <- df_balance %>%
-    group_by(gps_strata) %>%
-    summarize(
-        across(
-            confounders,
-            ~ mean(.x, na.rm = TRUE),
-            .names = "mean_{col}"
-        )
-    )
+# test if confounders are balanced
 
-print(balance_summary)
+for (cov in confounders) {
+    formula <- as.formula(paste(cov, "~ gps_strata"))
+    print(cov)
+    print(summary(aov(formula, data = df_balance)))
+}
 
 # Plot each confounder's mean vs. stratum
+plot_list <- list()
+
 for (cov in confounders) {
     p <- df_balance %>%
         group_by(gps_strata) %>%
-        summarize(mean_val = mean(.data[[cov]])) %>%
+        summarize(mean_val = mean(.data[[cov]], na.rm = TRUE)) %>%
+        arrange(gps_strata) %>%
         ggplot(aes(x = gps_strata, y = mean_val)) +
+        geom_point() +
         geom_line() +
-        labs(title = paste("Balance: ", cov))
+        labs(title = paste("Balance:", cov),
+             x = "GPS Stratum",
+             y = paste("Mean", cov)) +
+        theme_minimal()
 
-    ggsave(
-        filename = here("Outputs", paste0("GPS_Balance_", cov, ".png")),
-        plot = p,
-        width = 12, height = 6, dpi = 300, bg = "white"
-    )
+    plot_list[[cov]] <- p
 }
+
+# Combine all plots into a grid
+combined <- wrap_plots(plot_list, ncol = 2)  # adjust ncol as you want
+
+# Save the combined figure
+ggsave(
+    filename = here("Outputs", "GPS_Balance_All.png"),
+    plot = combined,
+    width = 16,
+    height = 12,
+    dpi = 300,
+    bg = "white"
+)
 
 # Outcome model: outcome ~ treatment + GPS + interaction
 # Hirano & Imbens (2004) recommends an interaction term to reduce bias
