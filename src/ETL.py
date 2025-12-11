@@ -620,6 +620,25 @@ normalized_view_9k = view_9k.with_columns(
 )
 
 # %%
+# Create discretized datasets for Bayesian network modeling
+
+
+def discretize(df: pl.DataFrame, n_bins: int) -> pl.DataFrame:
+    discretized = df.clone()
+    for col in df.columns:
+        edges = np.linspace(df[col].min(), df[col].max(), n_bins + 1)
+        discretized = discretized.with_columns(
+            (pl.col(col).cut(edges).cast(pl.Int64) + 1)
+            .clip(upper_bound=n_bins)
+            .alias(col)
+        )
+    return discretized.drop("year_bin")
+
+
+n_bins = 6
+discretized_view_742k = discretize(view_742k, n_bins)
+discretized_view_9k = discretize(view_9k, n_bins)
+# %%
 # Export final datasets
 visualization_view.write_csv(
     f"{PACKAGE_ROOT}/Outputs/visualization_view.csv",
@@ -635,6 +654,12 @@ normalized_view_742k.write_csv(
 )
 normalized_view_9k.write_csv(
     f"{PACKAGE_ROOT}/Outputs/normalized_anomaly_9k.csv",
+)
+discretized_view_742k.write_csv(
+    f"{PACKAGE_ROOT}/Outputs/discretized_anomaly_742k.csv",
+)
+discretized_view_9k.write_csv(
+    f"{PACKAGE_ROOT}/Outputs/discretized_anomaly_9k.csv",
 )
 
 # %%
